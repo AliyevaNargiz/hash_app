@@ -3,6 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from zlib import crc32
 
 
 APP = Path(__file__).with_name("hash_app.py").resolve()
@@ -45,6 +46,38 @@ class HashAppTests(unittest.TestCase):
             self.bucket_contents(),
             {"1.txt": "Hell", "1.1.txt": "oWor", "1.2.txt": "ld"},
         )
+
+    def test_multiple_buckets(self):
+        inputs = ["Hello", "World", "Test", "  "]
+        subprocess.run(
+            [sys.executable, str(APP), "5", "20"],
+            cwd=self.directory,
+            input="\n".join(inputs) + "\n",
+            encoding="utf-8",
+            capture_output=True,
+            check=True,
+        )
+        expected = {f"{bucket}.txt": "" for bucket in range(1, 6)}
+        for text in inputs:
+            bucket = crc32(text.encode("utf-8")) % 5 + 1
+            expected[f"{bucket}.txt"] += text
+        directory = self.directory / "buckets" / "5-20"
+        actual = {
+            path.name: path.read_text(encoding="utf-8")
+            for path in directory.glob("*.txt")
+        }
+        self.assertEqual(actual, expected)
+
+    def test_invalid_arguments(self):
+        for arguments in [[], ["0", "4"], ["1", "-1"], ["x", "4"]]:
+            with self.subTest(arguments=arguments):
+                result = subprocess.run(
+                    [sys.executable, str(APP), *arguments],
+                    cwd=self.directory,
+                    capture_output=True,
+                )
+                self.assertEqual(result.returncode, 2)
+        self.assertFalse((self.directory / "buckets").exists())
 
 
 if __name__ == "__main__":

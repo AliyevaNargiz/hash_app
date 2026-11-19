@@ -4,7 +4,9 @@
 
 ## Run
 
-From the repository directory, run:
+Python 3.8 or later must be installed. The application uses the standard library and can be run directly.
+
+From the repository directory, run
 
 ```sh
 python hash_app.py 5 20
@@ -25,3 +27,33 @@ The filenames link each bucket to its overflow chain. For bucket 3, the order is
 For example, with `n=1` and `s=4`, entering `Hello` and then `World` produces `Hell` in `1.txt`, `oWor` in `1.1.txt`, and `ld` in `1.2.txt`.
 
 For each input, the program follows the numbered filenames to the last file and reads its length to see how much space is left. Restarting with the same arguments resumes the existing chains. Use one process per configuration directory at a time.
+
+## Example
+
+Start with a new `buckets/1-4/` directory and run `python hash_app.py 1 4`.
+
+```text
+Please enter the string: Hello
+Hello added to 1.txt, 1.1.txt
+Please enter the string: World
+World added to 1.1.txt, 1.2.txt
+Please enter the string:
+```
+
+The files in `buckets/1-4/` then contain
+
+| File | Contents |
+| --- | --- |
+| 1.txt | Hell |
+| 1.1.txt | oWor |
+| 1.2.txt | ld |
+
+## Tests
+
+From the repository directory, run
+
+```sh
+python -m unittest -v
+```
+
+The tests cover overflow, restarting, bucket selection, and invalid command-line arguments. Test files are stored in temporary directories and cleaned up afterwards.
