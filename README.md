@@ -1,59 +1,40 @@
 # hash_app
 
-`hash_app` is a command-line program that stores text in file-based hash buckets. It uses Python 3.8 or later and the standard library.
+A file-based hash bucket application written in Python.
 
 ## Run
 
-Python 3.8 or later must be installed. The application uses the standard library and can be run directly.
-
-From the repository directory, run
+Install Python 3.8 or later. From the cloned repository directory, create a virtual environment
 
 ```sh
-python hash_app.py 5 20
+python -m venv .venv
 ```
 
-Use `python3` instead if that is your Python command. Both arguments must be positive integers. The first is the number of buckets, `n`. The second is the maximum characters per file, `s`. Type a string and press Enter. Use Ctrl+C to quit. End-of-input also stops the program, so input can be piped in. Empty lines are skipped.
+Activate it with `.venv\Scripts\Activate.ps1` in Windows PowerShell, or `source .venv/bin/activate` on Linux/macOS. Then install and run
+
+```sh
+python -m pip install .
+hash_app 5 20
+```
+
+Use `python3` if needed when creating the environment. Installation includes the xxHash dependency. You can also run `python hash_app.py 5 20` after installation.
+
+The first argument is the number of buckets (`n`), and the second is the maximum Unicode characters per file (`s`). Both must be positive integers. Enter strings one at a time. Press Ctrl+C to quit. Empty lines are skipped, and end-of-input also exits.
 
 ## Hashing
 
-The program computes CRC-32 with the standard-library function `zlib.crc32` on the input's UTF-8 bytes. It uses `(hash % n) + 1` to select one of the buckets numbered 1 through `n`. Different strings can land in the same bucket.
+The application uses the xxHash algorithm (XXH64, seed 0) through the Python `xxhash` library on the UTF-8 input. The bucket number is `(hash % n) + 1`, giving filenames from `1.txt` to `n.txt`. Collisions are allowed, and strings are stored without separators.
 
-## Files and overflow
+## Overflow files
 
-Each configuration stores its files in `buckets/<n>-<s>/` under the current working directory. The primary files are `1.txt` through `n.txt`. Each file holds up to `s` Unicode code points. The program appends text without adding separators.
+Files are stored in `buckets/<n>-<s>/`. Each bucket starts with `1.txt`, `2.txt`, and so on.
 
-The filenames link each bucket to its overflow chain. For bucket 3, the order is `3.txt`, `3.1.txt`, `3.2.txt`, and so on. Appends start in the last file in that chain. When it fills, the next numbered file is created as soon as there is more text to write. One input can span multiple files.
+Overflow files use consecutive names such as `3.txt`, `3.1.txt`, `3.2.txt`. These names form the reference chain. The program finds the last file before writing and creates the next file when the current one is full. Long inputs can span several files. Restarting with the same arguments continues the existing files.
 
-For example, with `n=1` and `s=4`, entering `Hello` and then `World` produces `Hell` in `1.txt`, `oWor` in `1.1.txt`, and `ld` in `1.2.txt`.
-
-For each input, the program follows the numbered filenames to the last file and reads its length to see how much space is left. Restarting with the same arguments resumes the existing chains. Use one process per configuration directory at a time.
-
-## Example
-
-Start with a new `buckets/1-4/` directory and run `python hash_app.py 1 4`.
-
-```text
-Please enter the string: Hello
-Hello added to 1.txt, 1.1.txt
-Please enter the string: World
-World added to 1.1.txt, 1.2.txt
-Please enter the string:
-```
-
-The files in `buckets/1-4/` then contain
-
-| File | Contents |
-| --- | --- |
-| 1.txt | Hell |
-| 1.1.txt | oWor |
-| 1.2.txt | ld |
+For example, with `n=1` and `s=4`, entering `Hello` and then `World` stores `Hell` in `1.txt`, `oWor` in `1.1.txt`, and `ld` in `1.2.txt`.
 
 ## Tests
-
-From the repository directory, run
 
 ```sh
 python -m unittest -v
 ```
-
-The tests cover overflow, restarting, bucket selection, and invalid command-line arguments. Test files are stored in temporary directories and cleaned up afterwards.

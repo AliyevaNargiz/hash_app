@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from zlib import crc32
+from xxhash import xxh64_intdigest
 
 
 def positive_int(value):
@@ -55,7 +55,7 @@ def main():
             text = input("Please enter the string: ")
             if text == "":
                 continue
-            bucket = crc32(text.encode("utf-8")) % args.n + 1
+            bucket = xxh64_intdigest(text.encode("utf-8")) % args.n + 1
             written = append_text(directory, bucket, args.s, text)
             print(f"{text} added to {', '.join(written)}")
     except (KeyboardInterrupt, EOFError):

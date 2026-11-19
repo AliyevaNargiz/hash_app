@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from zlib import crc32
+from xxhash import xxh64_intdigest
 
 
 APP = Path(__file__).with_name("hash_app.py").resolve()
@@ -59,7 +59,7 @@ class HashAppTests(unittest.TestCase):
         )
         expected = {f"{bucket}.txt": "" for bucket in range(1, 6)}
         for text in inputs:
-            bucket = crc32(text.encode("utf-8")) % 5 + 1
+            bucket = xxh64_intdigest(text.encode("utf-8")) % 5 + 1
             expected[f"{bucket}.txt"] += text
         directory = self.directory / "buckets" / "5-20"
         actual = {
@@ -78,6 +78,21 @@ class HashAppTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 2)
         self.assertFalse((self.directory / "buckets").exists())
+
+    def test_full_bucket_creates_overflow_on_next_input(self):
+        self.run_app("abcd\n")
+        self.assertEqual(self.bucket_contents(), {"1.txt": "abcd"})
+        self.run_app("e\n")
+        self.assertEqual(
+            self.bucket_contents(), {"1.txt": "abcd", "1.1.txt": "e"}
+        )
+
+    def test_long_unicode_input_spans_multiple_overflow_files(self):
+        self.run_app("🙂éabcdefghi\n")
+        self.assertEqual(
+            self.bucket_contents(),
+            {"1.txt": "🙂éab", "1.1.txt": "cdef", "1.2.txt": "ghi"},
+        )
 
 
 if __name__ == "__main__":

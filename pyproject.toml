@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hash_app"
+version = "1.0.0"
+description = "A simple file-based hash bucket application"
+requires-python = ">=3.8"
+dynamic = ["dependencies"]
+
+[project.scripts]
+hash_app = "hash_app:main"
+
+[tool.setuptools]
+py-modules = ["hash_app"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
